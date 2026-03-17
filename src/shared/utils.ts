@@ -6,6 +6,10 @@ export function randomDelay(minMs: number = 2000, maxMs: number = 3000): Promise
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+export function heavyLoadDelay(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 5000));
+}
+
 export async function cleanupSession(session: BrowserSession): Promise<void> {
   try {
     await randomDelay();

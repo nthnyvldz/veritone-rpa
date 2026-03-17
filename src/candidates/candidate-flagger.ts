@@ -1,6 +1,6 @@
 import { Page } from 'playwright';
 import { PassingCandidate, FLAG_COLOUR_MAP, CardData, FlagResult, classifyCards } from './candidate-page-object';
-import { randomDelay } from '../shared/utils';
+import { randomDelay, heavyLoadDelay } from '../shared/utils';
 
 async function classifyPageCandidates(
   page: Page,
@@ -41,6 +41,7 @@ export async function flagFailingCandidates(
   page: Page,
   advertId: string,
   passingCandidates: PassingCandidate[],
+  totalResponses: number,
 ): Promise<FlagResult> {
   await page.goto(
     `https://www.adcourier.com/view-vacancy.cgi?advert_id=${advertId}`,
@@ -76,7 +77,7 @@ export async function flagFailingCandidates(
       flaggedCount++;
     }
 
-    await randomDelay();
+    await (totalResponses >= 800 ? heavyLoadDelay() : randomDelay());
 
     const nextPageLi = page.locator('div.pager ul li.page-num.selected + li.page-num').first();
     const nextExists = (await nextPageLi.count()) > 0;

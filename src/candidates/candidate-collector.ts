@@ -2,7 +2,7 @@ import { Page } from 'playwright';
 import { DateTime } from 'luxon';
 import path from 'path';
 import fs from 'fs/promises';
-import { randomDelay } from '../shared/utils';
+import { randomDelay, heavyLoadDelay } from '../shared/utils';
 import { PassingCandidate, CollectResult, FLAG_COLOUR_MAP, buildCollectSummary } from './candidate-page-object';
 
 async function waitForStableCards(page: Page): Promise<void> {
@@ -76,7 +76,7 @@ export async function collectPassingCandidates(
     const nextExists = (await nextPageLi.count()) > 0;
     if (!nextExists) break;
 
-    await randomDelay();
+    await (totalFiltered >= 800 ? heavyLoadDelay() : randomDelay());
     await nextPageLi.click();
     await page
       .locator(`div.pager ul li.page-num.selected[title="${pageNumber + 1}"]`).first()

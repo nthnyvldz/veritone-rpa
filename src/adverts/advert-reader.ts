@@ -2,7 +2,7 @@ import { Page } from "playwright";
 import { DateTime } from "luxon";
 import path from "path";
 import fs from "fs/promises";
-import { randomDelay } from "../shared/utils";
+import { randomDelay, heavyLoadDelay } from "../shared/utils";
 import {
   appendToExcel,
   markAdvertSkipped,
@@ -304,6 +304,7 @@ export async function readAndProcessAdverts(
           page,
           advert.advertId,
           collectResult.passingCandidates,
+          advert.totalResponses,
         );
 
         if (!isWithinRunWindow()) {
@@ -459,7 +460,7 @@ export async function readAndProcessAdverts(
       }
     }
 
-    await randomDelay();
+    await (advert.totalResponses >= 800 ? heavyLoadDelay() : randomDelay());
     console.log("[AdvertReader] Navigating back to Manage Adverts...");
     await page.locator('a[href*="manage-vacancies"]').first().click();
     await page.waitForLoadState("domcontentloaded");
