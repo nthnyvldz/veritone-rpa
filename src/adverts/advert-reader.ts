@@ -173,7 +173,9 @@ export async function readAndProcessAdverts(
   // // TESTING ONLY - remove when done
 
   const allAdverts = await readAdvertList(page);
-  const adverts = filterAndSort(allAdverts);
+  // TESTING ONLY - remove when done
+  const adverts = filterAndSort(allAdverts).slice(0, 5);
+  // TESTING ONLY - remove when done
 
   if (adverts.length === 0) {
     console.log(
