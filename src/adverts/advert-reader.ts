@@ -80,7 +80,7 @@ async function readAdvertList(page: Page): Promise<AdvertSummary[]> {
 
     const pageAdverts: AdvertSummary[] = [];
     for (const r of raw) {
-      const parsed = parseAdvertRow(r as RawAdvertRow);
+      const parsed = parseAdvertRow(r as RawAdvertRow, pageNumber);
       if (parsed) pageAdverts.push(parsed);
     }
 
@@ -241,6 +241,13 @@ export async function readAndProcessAdverts(
 
     try {
       await randomDelay();
+      if (advert.listPage > 1) {
+        const pageLink = page
+          .locator('.paginator a')
+          .filter({ hasText: new RegExp(`^${advert.listPage}$`) });
+        await pageLink.first().click();
+        await page.waitForLoadState('domcontentloaded');
+      }
       await page
         .locator(`a.jobtitle.no_dragdrop[href*="advert_id=${advert.advertId}"]`)
         .click();

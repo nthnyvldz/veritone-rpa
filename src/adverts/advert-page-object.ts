@@ -11,6 +11,7 @@ export interface AdvertSummary {
   consultant: string;
   refNumber: string;
   location: string;
+  listPage: number;
 }
 
 export interface AdvertDetail {
@@ -47,7 +48,7 @@ export function classifyError(message: string): string {
   return "other";
 }
 
-export function parseAdvertRow(r: RawAdvertRow): AdvertSummary | null {
+export function parseAdvertRow(r: RawAdvertRow, listPage: number): AdvertSummary | null {
   if (!r.advertId) {
     console.warn(`[AdvertReader] Skipping row — could not extract advert ID from href.`);
     return null;
@@ -60,7 +61,7 @@ export function parseAdvertRow(r: RawAdvertRow): AdvertSummary | null {
     return null;
   }
 
-  return { ...r, datePosted };
+  return { ...r, datePosted, listPage };
 }
 
 export function filterAndSort(adverts: AdvertSummary[]): AdvertSummary[] {
