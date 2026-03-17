@@ -1,7 +1,7 @@
 import { DateTime } from 'luxon';
 import { parseAdvertDate } from '../shared/utils';
 
-export const DEFAULT_LOOKBACK_DAYS = 10;
+export const DEFAULT_LOOKBACK_DAYS = 30;
 
 export interface AdvertSummary {
   advertId: string;
@@ -70,19 +70,40 @@ export function filterAndSort(adverts: AdvertSummary[]): AdvertSummary[] {
   );
   const cutoff = DateTime.now().minus({ days: lookbackDays }).startOf("day");
 
-  const filtered = adverts.filter((a) => a.datePosted >= cutoff);
+  const withinWindow = adverts.filter((a) => a.datePosted >= cutoff);
 
   console.log(
-    `[AdvertReader] ${filtered.length} of ${adverts.length} adverts within the ${lookbackDays}-day lookback window.`,
+    `[AdvertReader] ${withinWindow.length} of ${adverts.length} adverts within the ${lookbackDays}-day lookback window.`,
+  );
+
+  for (const a of withinWindow) {
+    console.log(
+      `[AdvertReader] Found: ID=${a.advertId} — "${a.jobTitle}" | ${a.totalResponses} applications | posted ${a.datePosted.toFormat('dd MMM yyyy HH:mm')}`,
+    );
+  }
+
+  // // TESTING ONLY - remove when done
+  // const testIds = ['519021', '519020', '519019', '519018', '519016'];
+  // console.log(
+  //   `[AdvertReader] TESTING MODE — running adverts: ${testIds.join(', ')}`,
+  // );
+  // return withinWindow.filter((a) => testIds.includes(a.advertId));
+  // // TESTING ONLY - remove when done
+
+  const filtered = withinWindow.filter((a) => a.totalResponses >= 100);
+  const skipped = withinWindow.length - filtered.length;
+
+  console.log(
+    `[AdvertReader] Skipped ${skipped} advert(s) with fewer than 100 applications.`,
   );
 
   filtered.sort((a, b) => a.datePosted.toMillis() - b.datePosted.toMillis());
 
-  // TESTING ONLY - remove when done
-  const testIds = ['519021', '519020', '519019', '519018', '519016'];
-  console.log(
-    `[AdvertReader] TESTING MODE — running adverts: ${testIds.join(', ')}`,
-  );
-  return filtered.filter((a) => testIds.includes(a.advertId));
-  // TESTING ONLY - remove when done
+  for (const a of filtered) {
+    console.log(
+      `[AdvertReader] Will process: ID=${a.advertId} — "${a.jobTitle}"`,
+    );
+  }
+
+  return filtered;
 }

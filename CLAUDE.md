@@ -154,8 +154,8 @@ They must not be violated.
    candidates who did not survive the keyword + location search.
 3. **Always check for grey colour before flagging.** The expected state of an un-actioned
    candidate is grey (no flag). Confirm this visually/via selector before writing any flag.
-4. **The 3-week lookback rule is enforced by `LOOKBACK_DAYS`.** Do not process adverts
-   older than the configured window. Default is 10 days.
+4. **The lookback rule is enforced by `LOOKBACK_DAYS`.** Do not process adverts
+   older than the configured window. Production default is 30 days.
 5. **Archived adverts are used for testing only.** The live run always operates on the
    default (non-archived) Manage Adverts view. Archived navigation is a testing override
    and must be removed before going live.
@@ -292,51 +292,57 @@ Copy `.env.template` to `.env` and fill in real values. Never commit `.env`.
 |---|---|---|
 | `ANTHROPIC_API_KEY` | — | Claude API key (required) |
 | `RUN_MODE` | `production` | `production` enforces 7 pm–7 am window; `testing` skips it |
-| `LOOKBACK_DAYS` | `10` | How many days back to look for adverts |
+| `LOOKBACK_DAYS` | `30` | How many days back to look for adverts (production) |
 | `EMAIL_USER` | — | Gmail address used to send notifications |
 | `EMAIL_PASS` | — | Gmail App Password for the sending account |
 
 **Email recipients** are hardcoded in `email-service.ts`: `sustdev3@gmail.com`, `bruce@8020green.com`,
 and a testing address (see TESTING ONLY markers). They are not read from `.env`.
 
-**Currently:** `RUN_MODE=production` and `LOOKBACK_DAYS=1000` (wide window for archived advert testing).
+**Currently:** `RUN_MODE=testing` and `LOOKBACK_DAYS=1000` (wide window so archived test adverts are not filtered out by date).
 
 ---
 
 ## 8. TESTING VS PRODUCTION
 
-### How testing works
+### The distinction
 
-Archived adverts on Veritone Hire are used as safe test data because they are real adverts
-with real candidates but have no operational consequences — flagging a candidate on an
-archived advert does not affect live hiring.
+**Production** reads every advert posted within the last 30 days from the live Manage Adverts
+page and runs the full pipeline on each one.
 
-The current testing setup runs the **full production pipeline** (filter → collect → flag →
-resume review → Excel write) against adverts found on **page 10** of the Archived Adverts tab.
+**Testing** does NOT attempt to mimic this. Instead it runs the full pipeline against
+**5 handpicked adverts** from **page 10 of the Archived Adverts tab**. Archived adverts are
+safe test data — they are real adverts with real candidates but flagging them has no
+operational consequences for live hiring. `LOOKBACK_DAYS` is set to `1000` in `.env` during
+testing so that archived adverts are not filtered out by date.
 
-How the test mode works:
+### How the testing overrides work
+
 1. `main.ts` calls `navigateToArchivedAdverts()` after `navigateToManageAdverts()` to switch
    to the archived tab.
 2. `readAndProcessAdverts()` calls `navigateToArchivedAdvertsPage10()` to land on page 10.
-3. `filterAndSort()` in `advert-page-object.ts` filters to an explicit list of test advert IDs
-   rather than processing all adverts in the lookback window. Current test IDs:
-   `519021`, `519020`, `519019`, `519018`, `519016`.
-4. Between adverts, `navigateToArchivedAdvertsPage10()` is called again to return to the
+3. `readAdvertList()` reads only page 10 and stops (single-page `break` — no pagination).
+4. `filterAndSort()` in `advert-page-object.ts` filters to an explicit list of test advert IDs.
+   Current test IDs: `519021`, `519020`, `519019`, `519018`, `519016`.
+5. Between adverts, `navigateToArchivedAdvertsPage10()` is called again to return to the
    correct listing page before clicking into the next advert.
-5. A temporary ID-listing log in `readAdvertList` prints every advert ID and title found.
+6. A temporary ID-listing log in `readAdvertList` prints every advert ID and title found.
 
 ### Removing testing overrides before going live
 
 Search for `// TESTING ONLY - remove when done` across the codebase. There are currently
-**five locations**:
+**six locations**:
 
 | File | What to remove |
 |---|---|
 | `src/main.ts` | The `navigateToArchivedAdverts()` call |
 | `src/adverts/page-navigation.ts` | The `navigateToArchivedAdvertsPage10` and `navigateToArchivedAdverts` functions and their exports |
 | `src/adverts/advert-page-object.ts` (`filterAndSort`) | The explicit test ID filter block — replace with `return filtered` |
+| `src/adverts/advert-reader.ts` (`readAdvertList`) | The single-page `break` that stops pagination after page 10 |
 | `src/adverts/advert-reader.ts` (loop body) | The `navigateToArchivedAdvertsPage10()` call between adverts |
 | `src/adverts/advert-reader.ts` (`readAdvertList`) | The ID-listing `for` loop that prints every advert ID and title |
+
+Also set `LOOKBACK_DAYS=30` and `RUN_MODE=production` in `.env` before going live.
 
 After removing all testing overrides, run `npx tsc --noEmit` to confirm zero errors.
 

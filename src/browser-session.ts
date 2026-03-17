@@ -1,7 +1,6 @@
 import { chromium, Browser, BrowserContext, Page } from 'playwright';
 
 const VERITONE_LOGIN_URL = 'https://www.adcourier.com/login.cgi?redirect=%3F';
-const LOGIN_TIMEOUT_MS = 10 * 60 * 1000;
 const POST_LOGIN_URL_PATTERN = /adcourier\.com\/?$/i;
 
 export interface BrowserSession {
@@ -32,39 +31,21 @@ export async function launchAndWaitForLogin(): Promise<BrowserSession> {
 
   await page.goto(VERITONE_LOGIN_URL, { waitUntil: 'domcontentloaded' });
 
-  const runMode = process.env.RUN_MODE ?? 'testing';
+  console.log('[Browser] ─────────────────────────────────────────');
+  console.log('[Browser]  ACTION REQUIRED: Please log in to ');
+  console.log('[Browser]  Veritone Hire.');
+  console.log('[Browser]  The automation will start as soon ');
+  console.log('[Browser]  as you log in.');
+  console.log('[Browser] ─────────────────────────────────────────');
 
-  if (runMode === 'production') {
-    console.log('[Browser] ─────────────────────────────────────────');
-    console.log('[Browser]  ACTION REQUIRED: Please log in to ');
-    console.log('[Browser]  Veritone Hire.');
-    console.log('[Browser]  The automation will start as soon ');
-    console.log('[Browser]  as you log in.');
-    console.log('[Browser] ─────────────────────────────────────────');
-
-    await new Promise<void>((resolve) => {
-      const interval = setInterval(() => {
-        if (POST_LOGIN_URL_PATTERN.test(page.url())) {
-          clearInterval(interval);
-          resolve();
-        }
-      }, 3000);
-    });
-  } else {
-    console.log('[Browser] ─────────────────────────────────────────────────');
-    console.log('[Browser]  ACTION REQUIRED: Please log in to Veritone Hire.');
-    console.log(`[Browser]  You have ${LOGIN_TIMEOUT_MS / 60000} minutes to complete login.`);
-    console.log('[Browser] ─────────────────────────────────────────────────');
-
-    await page.waitForURL(POST_LOGIN_URL_PATTERN, {
-      timeout: LOGIN_TIMEOUT_MS,
-    }).catch(() => {
-      throw new Error(
-        `[Browser] Login timed out after ${LOGIN_TIMEOUT_MS / 60000} minutes. ` +
-        'Please restart and log in within the allowed window.'
-      );
-    });
-  }
+  await new Promise<void>((resolve) => {
+    const interval = setInterval(() => {
+      if (POST_LOGIN_URL_PATTERN.test(page.url())) {
+        clearInterval(interval);
+        resolve();
+      }
+    }, 3000);
+  });
 
   console.log('[Browser] Login confirmed. Session is active.');
 

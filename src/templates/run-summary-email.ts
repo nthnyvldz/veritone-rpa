@@ -61,6 +61,8 @@ function buildAdvertSection(r: AdvertRunResult): string {
   if (r.labouringFilterRejects !== undefined) rows.push(tableRow('Labouring Rejects', r.labouringFilterRejects, i++));
   if (r.heavyLabouringRejects !== undefined) rows.push(tableRow('Heavy Labour Rejects', r.heavyLabouringRejects, i++));
   if (r.employmentDateRejects !== undefined) rows.push(tableRow('Employ. Date Rejects', r.employmentDateRejects, i++));
+  if (r.civilLabourerRejects !== undefined) rows.push(tableRow('Civil Labourer Rejects', r.civilLabourerRejects, i++));
+  if (r.productionWorkerRejects !== undefined) rows.push(tableRow('Production Worker Rejects', r.productionWorkerRejects, i++));
   if (r.passCount !== undefined) rows.push(tableRow('Passed AI Review', r.passCount, i++));
   if (r.skippedPreviouslyPassed !== undefined && r.skippedPreviouslyPassed > 0) {
     rows.push(tableRow('Prev Run Skipped', r.skippedPreviouslyPassed, i++));

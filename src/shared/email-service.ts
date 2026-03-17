@@ -26,6 +26,8 @@ export interface AdvertRunResult {
   labouringFilterRejects?: number;
   heavyLabouringRejects?: number;
   employmentDateRejects?: number;
+  civilLabourerRejects?: number;
+  productionWorkerRejects?: number;
   passCount?: number;
   skippedPreviouslyPassed?: number;
   skippedReason?: string;
@@ -50,7 +52,7 @@ export async function sendRunSummaryEmail(
       from: "Veritone RPA <sustdev3@gmail.com>",
       to: [
         "sustdev3@gmail.com",
-        "pascualanthonyvaldez0613@gmail.com", // TESTING ONLY - remove when done
+        "pascualanthonyvaldez0613@gmail.com",
         "bruce@8020green.com",
       ],
       subject: `Veritone RPA — Run Complete [${timestamp}]`,

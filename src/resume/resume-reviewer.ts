@@ -186,6 +186,8 @@ export async function reviewResumes(
     labouringFilterRejects,
     heavyLabouringRejects,
     employmentDateRejects,
+    civilLabourerRejects,
+    productionWorkerRejects,
   } = tallyRejectionCounts(results);
 
   const previousIds = new Set(previousResults.map((r) => r.id));
@@ -209,5 +211,5 @@ export async function reviewResumes(
     `(${flaggedCount} flagged purple), ${skippedCount} skipped (already flagged)`,
   );
 
-  return { passCount, failCount, flaggedCount, skippedCount, skippedPreviouslyPassed, generalFilterRejects, labouringFilterRejects, heavyLabouringRejects, employmentDateRejects };
+  return { passCount, failCount, flaggedCount, skippedCount, skippedPreviouslyPassed, generalFilterRejects, labouringFilterRejects, heavyLabouringRejects, employmentDateRejects, civilLabourerRejects, productionWorkerRejects };
 }

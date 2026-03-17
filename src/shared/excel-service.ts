@@ -23,6 +23,8 @@ export const COL = {
   LABOURING_FILTER_REJECTS: 16,
   HEAVY_LABOURING_REJECTS:  17,
   EMPLOYMENT_DATE_REJECTS:  18,
+  CIVIL_LABOURER_REJECTS:   19,
+  PRODUCTION_WORKER_REJECTS: 20,
 };
 
 function findLastWrittenRow(sheet: ExcelJS.Worksheet): number {
@@ -93,6 +95,8 @@ export async function finaliseAdvertRow(data: {
   labouringFilterRejects: number;
   heavyLabouringRejects: number;
   employmentDateRejects: number;
+  civilLabourerRejects: number;
+  productionWorkerRejects: number;
 }): Promise<void> {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.readFile(REPORT_PATH);
@@ -106,6 +110,8 @@ export async function finaliseAdvertRow(data: {
   sheet.getCell(row, COL.LABOURING_FILTER_REJECTS).value = data.labouringFilterRejects;
   sheet.getCell(row, COL.HEAVY_LABOURING_REJECTS).value = data.heavyLabouringRejects;
   sheet.getCell(row, COL.EMPLOYMENT_DATE_REJECTS).value = data.employmentDateRejects;
+  sheet.getCell(row, COL.CIVIL_LABOURER_REJECTS).value = data.civilLabourerRejects;
+  sheet.getCell(row, COL.PRODUCTION_WORKER_REJECTS).value = data.productionWorkerRejects;
   await workbook.xlsx.writeFile(REPORT_PATH);
 }
 

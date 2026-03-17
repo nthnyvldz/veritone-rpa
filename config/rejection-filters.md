@@ -12,9 +12,15 @@
 
 If the role is a labouring role, also apply:
 
-- **Age:** Anyone over 50 should be rejected. If the age of the candidate is not shown,
-  infer from their email address. E.g. fred1967@yahoo or melanie75@gmail were probably
-  born in 1967 and 1975 respectively.
+- **Age:** Anyone over 50 should be rejected. Use the following indicators in order of
+  priority to determine age:
+  1. CV explicitly states date of birth or age — most reliable.
+  2. Email contains a standalone 4-digit number between 1940 and 1974 that plausibly
+     represents a birth year (e.g. john1965@ is plausible, john0512@ is not).
+  3. Completed high school more than 32 years ago.
+  4. First job in work history started 30 or more years ago.
+  If none of these indicators are present, default to PASS — do not guess age from any
+  other source.
 - **Sex:** Females will almost always be rejected unless there is clear evidence of recent
   labouring experience.
 
@@ -26,6 +32,20 @@ If it is a heavy labouring role, also apply:
 - **Nationality:** E.g. someone who is a Pacific Islander (e.g. Samoan) can be expected
   to be strong.
 - **Sex:** Cannot be female.
+
+## Civil Labourer Role Filters
+
+If the job title contains "civil labourer" or "civil labourers", also apply:
+
+- **White Card:** The candidate must have a White Card (construction induction card)
+  mentioned in their CV. If no White Card is mentioned, reject the candidate.
+
+## Production Worker Role Filters
+
+If the job title contains "production worker", also apply:
+
+- **Hand Tools:** The candidate must mention "hand tools" in their CV. If hand tools are
+  not mentioned, reject the candidate.
 
 ## Employment Date Clarity Filter (high-volume only)
 

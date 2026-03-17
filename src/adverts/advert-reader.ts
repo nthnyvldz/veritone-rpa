@@ -18,11 +18,12 @@ import {
   sendErrorReportEmail,
   AdvertRunResult,
 } from "../shared/email-service";
-import { navigateToArchivedAdvertsPage10 } from "./page-navigation";
+// // import { navigateToArchivedAdvertsPage10 } from "./page-navigation"; // TESTING ONLY - remove when done
 import {
   AdvertSummary,
   AdvertDetail,
   RawAdvertRow,
+  DEFAULT_LOOKBACK_DAYS,
   isFatalError,
   classifyError,
   parseAdvertRow,
@@ -30,54 +31,83 @@ import {
 } from "./advert-page-object";
 
 async function readAdvertList(page: Page): Promise<AdvertSummary[]> {
-  const raw = await page.evaluate(() => {
-    const rows1 = document.querySelectorAll("tr.va-top.advert.last");
+  const lookbackDays = parseInt(
+    process.env.LOOKBACK_DAYS ?? String(DEFAULT_LOOKBACK_DAYS),
+    10,
+  );
+  const cutoff = DateTime.now().minus({ days: lookbackDays }).startOf("day");
 
-    return Array.from(rows1).map((row1) => {
-      const row2 = row1.nextElementSibling as HTMLElement | null;
-      const tds1 = row1.querySelectorAll("td");
-      const tds2 =
-        row2?.querySelectorAll("td") ??
-        ([] as unknown as NodeListOf<HTMLElement>);
+  const allAdverts: AdvertSummary[] = [];
+  const urlPageMatch = page.url().match(/[?&]page=(\d+)/);
+  let pageNumber = urlPageMatch ? parseInt(urlPageMatch[1], 10) : 1;
 
-      const responseSpan = row1.querySelector('span[title*="Total"]');
-      const responsesText = responseSpan?.textContent?.trim() ?? "0";
+  while (true) {
+    console.log(`[AdvertReader] Reading adverts page ${pageNumber}...`);
 
-      const titleLink = row1.querySelector(
-        "a.jobtitle.no_dragdrop",
-      ) as HTMLAnchorElement | null;
-      const href = titleLink?.getAttribute("href") ?? "";
-      const advertIdMatch = href.match(/advert_id=(\d+)/);
+    const raw = await page.evaluate(() => {
+      const rows1 = document.querySelectorAll("tr.va-top.advert.last");
 
-      const refRaw = tds2[1]?.textContent?.trim() ?? "";
-      const refNumber = refRaw.replace(/Ref\s*No\.?:?\s*/i, "").trim();
+      return Array.from(rows1).map((row1) => {
+        const row2 = row1.nextElementSibling as HTMLElement | null;
+        const tds1 = row1.querySelectorAll("td");
+        const tds2 =
+          row2?.querySelectorAll("td") ??
+          ([] as unknown as NodeListOf<HTMLElement>);
 
-      return {
-        advertId: advertIdMatch?.[1] ?? "",
-        jobTitle: titleLink?.textContent?.trim() ?? "",
-        dateText: tds1[1]?.textContent?.trim() ?? "",
-        totalResponses: parseInt(responsesText.match(/\d+/)?.[0] ?? "0", 10),
-        consultant: tds1[3]?.textContent?.trim() ?? "",
-        refNumber,
-        location: tds2[2]?.textContent?.trim() ?? "",
-      };
+        const responseSpan = row1.querySelector('span[title*="Total"]');
+        const responsesText = responseSpan?.textContent?.trim() ?? "0";
+
+        const titleLink = row1.querySelector(
+          "a.jobtitle.no_dragdrop",
+        ) as HTMLAnchorElement | null;
+        const href = titleLink?.getAttribute("href") ?? "";
+        const advertIdMatch = href.match(/advert_id=(\d+)/);
+
+        const refRaw = tds2[1]?.textContent?.trim() ?? "";
+        const refNumber = refRaw.replace(/Ref\s*No\.?:?\s*/i, "").trim();
+
+        return {
+          advertId: advertIdMatch?.[1] ?? "",
+          jobTitle: titleLink?.textContent?.trim() ?? "",
+          dateText: tds1[1]?.textContent?.trim() ?? "",
+          totalResponses: parseInt(responsesText.match(/\d+/)?.[0] ?? "0", 10),
+          consultant: tds1[3]?.textContent?.trim() ?? "",
+          refNumber,
+          location: tds2[2]?.textContent?.trim() ?? "",
+        };
+      });
     });
-  });
 
-  const adverts: AdvertSummary[] = [];
+    const pageAdverts: AdvertSummary[] = [];
+    for (const r of raw) {
+      const parsed = parseAdvertRow(r as RawAdvertRow);
+      if (parsed) pageAdverts.push(parsed);
+    }
 
-  for (const r of raw) {
-    const parsed = parseAdvertRow(r as RawAdvertRow);
-    if (parsed) adverts.push(parsed);
+    allAdverts.push(...pageAdverts);
+
+    // // TESTING ONLY - remove when done
+    // break;
+    // // TESTING ONLY - remove when done
+
+    const hasOldAdvert = pageAdverts.some((a) => a.datePosted < cutoff);
+    if (hasOldAdvert) break;
+
+    const nextPageNumber = pageNumber + 1;
+    const nextLink = page
+      .locator('.paginator a')
+      .filter({ hasText: new RegExp(`^${nextPageNumber}$`) });
+
+    if (await nextLink.count() === 0) break;
+
+    await randomDelay();
+    await nextLink.first().click();
+    await page.waitForLoadState('domcontentloaded');
+    pageNumber++;
   }
 
-  console.log(`[AdvertReader] Total adverts read: ${adverts.length}`);
-  // TESTING ONLY - remove when done
-  for (const a of adverts) {
-    console.log(`[AdvertReader] Found: ID=${a.advertId} — "${a.jobTitle}"`);
-  }
-  // TESTING ONLY - remove when done
-  return adverts;
+  console.log(`[AdvertReader] Total adverts read: ${allAdverts.length}`);
+  return allAdverts;
 }
 
 async function extractAdvertDetail(
@@ -138,9 +168,9 @@ export async function readAndProcessAdverts(
     "[AdvertReader] ─── Starting advert reader ───────────────────────────",
   );
 
-  // TESTING ONLY - remove when done
-  await navigateToArchivedAdvertsPage10(page);
-  // TESTING ONLY - remove when done
+  // // TESTING ONLY - remove when done
+  // await navigateToArchivedAdvertsPage10(page);
+  // // TESTING ONLY - remove when done
 
   const allAdverts = await readAdvertList(page);
   const adverts = filterAndSort(allAdverts);
@@ -152,24 +182,41 @@ export async function readAndProcessAdverts(
     return;
   }
 
-
-  const currentAdvertIds = new Set(adverts.map((a) => a.advertId));
+  const allAdvertsMap = new Map(allAdverts.map((a) => [a.advertId, a]));
+  const lookbackDays = parseInt(
+    process.env.LOOKBACK_DAYS ?? String(DEFAULT_LOOKBACK_DAYS),
+    10,
+  );
+  const cutoff = DateTime.now().minus({ days: lookbackDays }).startOf("day");
   const tempDir = path.resolve(process.cwd(), "temp");
   const tempFiles = await fs.readdir(tempDir).catch(() => [] as string[]);
+
   for (const file of tempFiles) {
     const resumeMatch = file.match(/^resume-review-(\d+)\.json$/);
     const passingMatch = file.match(/^passing-(\d+)\.json$/);
     const match = resumeMatch ?? passingMatch;
-    if (match && !currentAdvertIds.has(match[1])) {
+    if (!match) continue;
+
+    const advertId = match[1];
+    const advertEntry = allAdvertsMap.get(advertId);
+
+    if (advertEntry) {
+      if (advertEntry.datePosted < cutoff) {
+        await fs.unlink(path.join(tempDir, file));
+        console.log(
+          `[AdvertReader] Deleted stale state file: ${file} — outside lookback window`,
+        );
+      }
+    } else {
       await fs.unlink(path.join(tempDir, file));
       console.log(
-        `[AdvertReader] Deleted stale state file for advert ${match[1]} — not in current run`,
+        `[AdvertReader] Deleted stale state file: ${file} — no longer visible in advert list`,
       );
     }
   }
 
   console.log(
-    `[AdvertReader] Will process ${adverts.length} advert(s) (newest first).`,
+    `[AdvertReader] Will process ${adverts.length} advert(s) (oldest first).`,
   );
 
   const errorTracker = new Map<string, number>();
@@ -320,6 +367,8 @@ export async function readAndProcessAdverts(
           labouringFilterRejects: reviewResult.labouringFilterRejects,
           heavyLabouringRejects: reviewResult.heavyLabouringRejects,
           employmentDateRejects: reviewResult.employmentDateRejects,
+          civilLabourerRejects: reviewResult.civilLabourerRejects,
+          productionWorkerRejects: reviewResult.productionWorkerRejects,
         });
 
         let passingCandidateNames: string[] = [];
@@ -344,11 +393,13 @@ export async function readAndProcessAdverts(
           selectedKeywords: filterResult.selectedKeywords,
           totalApplications: detail.totalApplicants,
           filteredCount: filterResult.filteredCount,
-          unflaggedForReview: collectResult.passingCandidates.length,
+          unflaggedForReview: collectResult.passingCandidates.length - reviewResult.skippedCount,
           generalFilterRejects: reviewResult.generalFilterRejects,
           labouringFilterRejects: reviewResult.labouringFilterRejects,
           heavyLabouringRejects: reviewResult.heavyLabouringRejects,
           employmentDateRejects: reviewResult.employmentDateRejects,
+          civilLabourerRejects: reviewResult.civilLabourerRejects,
+          productionWorkerRejects: reviewResult.productionWorkerRejects,
           passCount: reviewResult.passCount,
           skippedPreviouslyPassed: reviewResult.skippedPreviouslyPassed,
           passingCandidateNames,
@@ -414,14 +465,7 @@ export async function readAndProcessAdverts(
     await page.waitForLoadState("domcontentloaded");
 
     if (shouldStop) break;
-
-    // TESTING ONLY - remove when done
-    if (advert !== adverts[adverts.length - 1]) {
-      await navigateToArchivedAdvertsPage10(page);
-    }
-    // TESTING ONLY - remove when done
   }
-
 
   console.log(
     "\n[AdvertReader] ─── All adverts processed ────────────────────────────",

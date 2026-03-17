@@ -37,17 +37,19 @@ Respond ONLY in raw JSON with no preamble, no markdown, no backticks:
 {
   "decision": "pass" or "fail",
   "reason": "brief explanation",
-  "rejection_category": "general" | "labouring" | "heavy_labouring" | "employment_date" | null
+  "rejection_category": "general" | "labouring" | "heavy_labouring" | "employment_date" | "civil_labourer" | "production_worker" | null
 }
 
 Rules for rejection_category:
-- If decision is "fail", rejection_category MUST be one of the four values — never null on a fail.
+- If decision is "fail", rejection_category MUST be one of the six values — never null on a fail.
 - If decision is "pass", rejection_category MUST be null.
 - If multiple filters apply, pick the PRIMARY reason using this priority:
   1. "employment_date" — no job in last 6 months or no similar role in 3 years
   2. "labouring" — age over 50 or female without recent labouring experience
   3. "heavy_labouring" — weight, nationality, or female restriction for heavy roles
-  4. "general" — anything else
+  4. "civil_labourer" — missing White Card for a civil labourer role
+  5. "production_worker" — missing hand tools experience for a production worker role
+  6. "general" — anything else
 
 CV:
 ${cvText}`;

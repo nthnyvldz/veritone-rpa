@@ -16,6 +16,8 @@ export interface ReviewSummary {
   labouringFilterRejects: number;
   heavyLabouringRejects: number;
   employmentDateRejects: number;
+  civilLabourerRejects: number;
+  productionWorkerRejects: number;
 }
 
 export const validRejectionCategories = [
@@ -23,6 +25,8 @@ export const validRejectionCategories = [
   'labouring',
   'heavy_labouring',
   'employment_date',
+  'civil_labourer',
+  'production_worker',
 ] as const;
 
 export type RejectionCategory = typeof validRejectionCategories[number];
@@ -65,11 +69,15 @@ export function tallyRejectionCounts(results: ReviewResult[]): {
   labouringFilterRejects: number;
   heavyLabouringRejects: number;
   employmentDateRejects: number;
+  civilLabourerRejects: number;
+  productionWorkerRejects: number;
 } {
   let generalFilterRejects = 0;
   let labouringFilterRejects = 0;
   let heavyLabouringRejects = 0;
   let employmentDateRejects = 0;
+  let civilLabourerRejects = 0;
+  let productionWorkerRejects = 0;
 
   for (const r of results) {
     if (r.ai_decision === 'fail') {
@@ -77,8 +85,10 @@ export function tallyRejectionCounts(results: ReviewResult[]): {
       else if (r.rejection_category === 'labouring') labouringFilterRejects++;
       else if (r.rejection_category === 'heavy_labouring') heavyLabouringRejects++;
       else if (r.rejection_category === 'employment_date') employmentDateRejects++;
+      else if (r.rejection_category === 'civil_labourer') civilLabourerRejects++;
+      else if (r.rejection_category === 'production_worker') productionWorkerRejects++;
     }
   }
 
-  return { generalFilterRejects, labouringFilterRejects, heavyLabouringRejects, employmentDateRejects };
+  return { generalFilterRejects, labouringFilterRejects, heavyLabouringRejects, employmentDateRejects, civilLabourerRejects, productionWorkerRejects };
 }
