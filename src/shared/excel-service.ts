@@ -25,6 +25,7 @@ export const COL = {
   EMPLOYMENT_DATE_REJECTS:  18,
   CIVIL_LABOURER_REJECTS:   19,
   PRODUCTION_WORKER_REJECTS: 20,
+  DEFAULTED_TO_PASS:        21,
 };
 
 function findLastWrittenRow(sheet: ExcelJS.Worksheet): number {
@@ -97,6 +98,7 @@ export async function finaliseAdvertRow(data: {
   employmentDateRejects: number;
   civilLabourerRejects: number;
   productionWorkerRejects: number;
+  defaultedToPassCount: number;
 }): Promise<void> {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.readFile(REPORT_PATH);
@@ -112,6 +114,7 @@ export async function finaliseAdvertRow(data: {
   sheet.getCell(row, COL.EMPLOYMENT_DATE_REJECTS).value = data.employmentDateRejects;
   sheet.getCell(row, COL.CIVIL_LABOURER_REJECTS).value = data.civilLabourerRejects;
   sheet.getCell(row, COL.PRODUCTION_WORKER_REJECTS).value = data.productionWorkerRejects;
+  sheet.getCell(row, COL.DEFAULTED_TO_PASS).value = data.defaultedToPassCount;
   await workbook.xlsx.writeFile(REPORT_PATH);
 }
 

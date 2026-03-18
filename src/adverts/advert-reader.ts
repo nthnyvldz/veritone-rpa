@@ -295,6 +295,7 @@ export async function readAndProcessAdverts(
         runResults.push({
           advertTitle: detail.jobTitle,
           status: 'skipped',
+          refNumber: advert.refNumber,
           location: detail.location,
           selectedKeywords: filterResult.selectedKeywords,
           totalApplications: detail.totalApplicants,
@@ -372,25 +373,13 @@ export async function readAndProcessAdverts(
           employmentDateRejects: reviewResult.employmentDateRejects,
           civilLabourerRejects: reviewResult.civilLabourerRejects,
           productionWorkerRejects: reviewResult.productionWorkerRejects,
+          defaultedToPassCount: reviewResult.defaultedToPassCount,
         });
-
-        let passingCandidateNames: string[] = [];
-        try {
-          const resumeStateRaw = await fs.readFile(
-            path.join(tempDir, `resume-review-${advert.advertId}.json`),
-            'utf-8',
-          );
-          const resumeState = JSON.parse(resumeStateRaw) as {
-            results: Array<{ name: string; ai_decision: string }>;
-          };
-          passingCandidateNames = resumeState.results
-            .filter((r) => r.ai_decision === 'pass')
-            .map((r) => r.name);
-        } catch {}
 
         runResults.push({
           advertTitle: detail.jobTitle,
           status: 'success',
+          refNumber: advert.refNumber,
           elapsedStr,
           location: detail.location,
           selectedKeywords: filterResult.selectedKeywords,
@@ -405,7 +394,6 @@ export async function readAndProcessAdverts(
           productionWorkerRejects: reviewResult.productionWorkerRejects,
           passCount: reviewResult.passCount,
           skippedPreviouslyPassed: reviewResult.skippedPreviouslyPassed,
-          passingCandidateNames,
         });
       }
     } catch (err) {

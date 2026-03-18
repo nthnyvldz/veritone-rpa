@@ -12,6 +12,7 @@ export interface ReviewSummary {
   flaggedCount: number;
   skippedCount: number;
   skippedPreviouslyPassed: number;
+  defaultedToPassCount: number;
   generalFilterRejects: number;
   labouringFilterRejects: number;
   heavyLabouringRejects: number;
@@ -34,10 +35,11 @@ export type RejectionCategory = typeof validRejectionCategories[number];
 export function validateLlmResponse(
   rawResponse: string,
   candidateName: string,
-): { decision: string; reason: string; rejection_category: RejectionCategory | null } {
+): { decision: string; reason: string; rejection_category: RejectionCategory | null; defaulted: boolean } {
   const cleaned = rawResponse.replace(/```(?:json)?|```/g, '').trim();
 
   let parsed: { decision: string; reason: string; rejection_category: RejectionCategory | null };
+  let defaulted = false;
   try {
     parsed = JSON.parse(cleaned) as typeof parsed;
   } catch {
@@ -45,6 +47,7 @@ export function validateLlmResponse(
       `[ResumeReviewer] WARNING: Could not parse LLM response for ${candidateName} — defaulting to pass`,
     );
     parsed = { decision: 'pass', reason: 'JSON parse error — defaulted to pass', rejection_category: null };
+    defaulted = true;
   }
 
   if (parsed.decision === 'fail') {
@@ -61,7 +64,7 @@ export function validateLlmResponse(
     parsed.rejection_category = null;
   }
 
-  return parsed;
+  return { ...parsed, defaulted };
 }
 
 export function tallyRejectionCounts(results: ReviewResult[]): {

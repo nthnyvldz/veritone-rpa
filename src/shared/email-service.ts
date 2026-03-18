@@ -15,6 +15,7 @@ const transporter = nodemailer.createTransport({
 export interface AdvertRunResult {
   advertTitle: string;
   status: "success" | "skipped" | "error";
+  refNumber?: string;
   errorMessage?: string;
   elapsedStr?: string;
   location?: string;
@@ -31,7 +32,6 @@ export interface AdvertRunResult {
   passCount?: number;
   skippedPreviouslyPassed?: number;
   skippedReason?: string;
-  passingCandidateNames?: string[];
 }
 
 export async function sendRunSummaryEmail(

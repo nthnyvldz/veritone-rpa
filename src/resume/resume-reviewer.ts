@@ -77,6 +77,7 @@ export async function reviewResumes(
   const results: ReviewResult[] = [];
   let flaggedCount = 0;
   let skippedPreviouslyPassed = 0;
+  let defaultedToPassCount = 0;
   let pageNumber = 1;
   const llmSelections = { 'resume review': llmModel };
 
@@ -140,6 +141,7 @@ export async function reviewResumes(
       const prompt = buildReviewPrompt(cvText, rejectionCriteria, strictMode, candidate.name);
       const rawResponse = await callLLM('resume review', prompt, llmSelections);
       const parsed = validateLlmResponse(rawResponse, candidate.name);
+      if (parsed.defaulted) defaultedToPassCount++;
 
       results.push({
         id,
@@ -211,5 +213,5 @@ export async function reviewResumes(
     `(${flaggedCount} flagged purple), ${skippedCount} skipped (already flagged)`,
   );
 
-  return { passCount, failCount, flaggedCount, skippedCount, skippedPreviouslyPassed, generalFilterRejects, labouringFilterRejects, heavyLabouringRejects, employmentDateRejects, civilLabourerRejects, productionWorkerRejects };
+  return { passCount, failCount, flaggedCount, skippedCount, skippedPreviouslyPassed, defaultedToPassCount, generalFilterRejects, labouringFilterRejects, heavyLabouringRejects, employmentDateRejects, civilLabourerRejects, productionWorkerRejects };
 }
