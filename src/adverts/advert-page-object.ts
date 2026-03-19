@@ -71,15 +71,10 @@ export function filterAndSort(adverts: AdvertSummary[]): AdvertSummary[] {
   );
   const cutoff = DateTime.now().minus({ days: lookbackDays }).startOf("day");
 
-  // TESTING ONLY - remove when done
-  const minAgeCutoff = DateTime.now().minus({ days: 15 });
-  const withinWindow = adverts.filter(
-    (a) => a.datePosted >= cutoff && a.datePosted <= minAgeCutoff,
-  );
-  // TESTING ONLY - remove when done
+  const withinWindow = adverts.filter((a) => a.datePosted >= cutoff);
 
   console.log(
-    `[AdvertReader] ${withinWindow.length} of ${adverts.length} adverts within the lookback window (15–${lookbackDays} days old).`,
+    `[AdvertReader] ${withinWindow.length} of ${adverts.length} adverts within the lookback window (last ${lookbackDays} days).`,
   );
 
   for (const a of withinWindow) {

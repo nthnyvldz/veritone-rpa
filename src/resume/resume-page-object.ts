@@ -4,6 +4,7 @@ export interface ReviewResult {
   ai_decision: string;
   ai_reason: string;
   rejection_category: RejectionCategory | null;
+  defaulted?: boolean;
 }
 
 export interface ReviewSummary {

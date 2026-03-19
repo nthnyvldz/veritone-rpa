@@ -165,9 +165,7 @@ export async function readAndProcessAdverts(
   const allAdverts = await readAdvertList(page);
   await page.locator('a#prim_manage').click();
   await page.waitForLoadState('domcontentloaded');
-  // TESTING ONLY - remove when done
-  const adverts = filterAndSort(allAdverts).slice(0, 10);
-  // TESTING ONLY - remove when done
+  const adverts = filterAndSort(allAdverts);
 
   if (adverts.length === 0) {
     console.log(
@@ -397,6 +395,7 @@ export async function readAndProcessAdverts(
           productionWorkerRejects: reviewResult.productionWorkerRejects,
           passCount: reviewResult.passCount,
           skippedPreviouslyPassed: reviewResult.skippedPreviouslyPassed,
+          defaultedToPassCount: reviewResult.defaultedToPassCount,
         });
       }
     } catch (err) {
@@ -467,14 +466,18 @@ export async function readAndProcessAdverts(
     "\n[AdvertReader] ─── All adverts processed ────────────────────────────",
   );
 
-  const advertList: AdvertListEntry[] = allAdverts.map((a) => ({
-    advertId: a.advertId,
-    jobTitle: a.jobTitle,
-    datePostedIso: a.datePosted.toISO() ?? '',
-    refNumber: a.refNumber,
-    location: a.location,
-    totalResponses: a.totalResponses,
-  }));
+  const emailLookbackDays = parseInt(process.env.LOOKBACK_DAYS ?? String(DEFAULT_LOOKBACK_DAYS), 10);
+  const emailCutoff = DateTime.now().minus({ days: emailLookbackDays }).startOf("day");
+  const advertList: AdvertListEntry[] = allAdverts
+    .filter((a) => a.datePosted >= emailCutoff)
+    .map((a) => ({
+      advertId: a.advertId,
+      jobTitle: a.jobTitle,
+      datePostedIso: a.datePosted.toISO() ?? '',
+      refNumber: a.refNumber,
+      location: a.location,
+      totalResponses: a.totalResponses,
+    }));
 
   await sendRunSummaryEmail(runResults, advertList);
 }

@@ -37,6 +37,7 @@ export async function reviewResumes(
 
   let previousResults: ReviewResult[] = [];
   const previouslyPassedIds = new Set<string>();
+  let defaultedToPassCount = 0;
 
   const previousRaw = await fs.readFile(outputPath, 'utf-8').catch(() => null);
   if (previousRaw !== null) {
@@ -44,7 +45,10 @@ export async function reviewResumes(
       const previousFile = JSON.parse(previousRaw) as { results: ReviewResult[] };
       previousResults = previousFile.results ?? [];
       for (const r of previousResults) {
-        if (r.ai_decision === 'pass') previouslyPassedIds.add(r.id);
+        if (r.ai_decision === 'pass') {
+          previouslyPassedIds.add(r.id);
+          if (r.defaulted) defaultedToPassCount++;
+        }
       }
       console.log(
         `[ResumeReviewer] Found previous run state for advert ${advertId} — ` +
@@ -77,7 +81,6 @@ export async function reviewResumes(
   const results: ReviewResult[] = [];
   let flaggedCount = 0;
   let skippedPreviouslyPassed = 0;
-  let defaultedToPassCount = 0;
   let pageNumber = 1;
   const llmSelections = { 'resume review': llmModel };
 
@@ -149,6 +152,7 @@ export async function reviewResumes(
         ai_decision: parsed.decision,
         ai_reason: parsed.reason,
         rejection_category: parsed.rejection_category,
+        defaulted: parsed.defaulted || undefined,
       });
 
       if (parsed.decision !== 'pass') {
