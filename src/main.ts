@@ -1,11 +1,35 @@
 import 'dotenv/config';
+import fs from 'fs';
+import path from 'path';
 import * as cron from 'node-cron';
 import { DateTime } from 'luxon';
+import { logger } from './activity-logger';
 import { launchAndWaitForLogin } from './browser-session';
 import { navigateToManageAdverts } from './adverts/page-navigation';
 import { readAndProcessAdverts } from './adverts/advert-reader';
 import { cleanupSession } from './shared/utils';
 import { loadAllVariables } from './shared/llm-service';
+
+const LOG_PATH = path.resolve(__dirname, '..', 'logs', 'run.log');
+try {
+  fs.unlinkSync(LOG_PATH);
+} catch {}
+
+console.log = (...args: unknown[]) => logger.info(args.join(' '));
+console.warn = (...args: unknown[]) => logger.warn(args.join(' '));
+console.error = (...args: unknown[]) => logger.error(args.join(' '));
+
+console.log('[Main] Previous run log cleared.');
+
+process.on('uncaughtException', (err: Error) => {
+  console.error('[Main] Uncaught exception:', err.message, err.stack);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason: unknown) => {
+  console.error('[Main] Unhandled rejection:', String(reason));
+  process.exit(1);
+});
 
 let activeSession: Awaited<ReturnType<typeof launchAndWaitForLogin>> | null = null;
 

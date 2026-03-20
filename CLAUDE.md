@@ -96,54 +96,7 @@ veritone-rpa/
 
 ---
 
-## 3. CODING CONVENTIONS
-
-- **Separation of concerns** — page-object files (`*-page-object.ts`) own all logic, data
-  transformation, interfaces, and type definitions. Automation files own only Playwright
-  steps (clicking, navigating, waiting, reading the DOM) plus calls to page-object and
-  service functions. No business logic inline in automation files.
-- **No inline comments** in source code. Code should be self-explanatory.
-  Use `CLAUDE.md` or separate docs for context.
-- **Testing-only additions** are the sole exception: mark them with
-  `// TESTING ONLY - remove when done` on both the opening and closing lines.
-- **Console log prefixes** must match the module name exactly, enclosed in square brackets:
-  `[Main]`, `[Browser]`, `[Navigation]`, `[AdvertReader]`, `[CandidateFilter]`,
-  `[CandidateCollector]`, `[CandidateFlagger]`, `[ResumeReviewer]`,
-  `[LLMService]`, `[ExcelService]`, `[Utils]`, `[Cleanup]`.
-- **Logging policy** — only log high-level step transitions and errors/warnings. Do not log
-  per-candidate actions, per-page progress, URL confirmations, or sub-step details.
-  Keep logs to a level where a human can follow the run at a glance without noise.
-- **All LLM prompts** live in `src/prompts/` as named exports. Never build prompt strings
-  inline inside service or logic files.
-- **Never use Ember-generated IDs** as Playwright selectors (e.g. `ember123`).
-  Always use stable CSS selectors — IDs baked into the site markup, class names,
-  attribute patterns, or structural combinators.
-- **Random delays** (`randomDelay`) must be used between every page interaction to avoid
-  rate-limiting and bot detection. The default is **4000–5000 ms**. Call `randomDelay()`
-  with no arguments; only pass explicit values if a specific window is genuinely needed.
-- **Ember pagination pattern** — after clicking a next-page `li`, always wait for the
-  selected page indicator to update before reading cards:
-  ```
-  await page.waitForSelector(
-    `#result-footer li.page-num.selected[title="${pageNumber + 1}"]`,
-    { timeout: 20000 },
-  );
-  await page.waitForTimeout(1000);
-  ```
-  Do NOT use `waitForLoadState('networkidle')` after pagination — Ember renders client-side.
-- **Gritter toast blocker** — after closing a candidate profile modal, a "Getting your
-  results..." toast can block pagination clicks. Wait for it to clear first:
-  ```
-  await page.waitForFunction(
-    () => (document.querySelector('#gritter-notice-wrapper')?.childElementCount ?? 0) === 0,
-    { timeout: 10000 },
-  ).catch(() => {});
-  ```
-- TypeScript `strict` mode is enabled. All code must pass `npx tsc --noEmit` with zero errors.
-
----
-
-## 4. SAFETY RULES
+## 3. SAFETY RULES
 
 These rules protect candidates and the integrity of the Veritone Hire data.
 They must not be violated.
@@ -162,78 +115,7 @@ They must not be violated.
 
 ---
 
-## 5. KEY SELECTORS REFERENCE
-
-These selectors have been confirmed against the live site. Do not replace them with
-Ember-generated or fragile alternatives.
-
-### Manage Adverts page (`manage-vacancies.cgi`)
-
-| Element | Selector |
-|---|---|
-| "Manage Adverts" nav link | `a#prim_manage` |
-| Active nav item wrapper | `li.active a#prim_manage` |
-| Advert rows | `tr.va-top.advert.last` |
-| Job title link (contains `advert_id=`) | `a.jobtitle.no_dragdrop` |
-| Total responses span | `span[title*="Total"]` |
-| Ref number cell | second `td` in the following sibling row |
-| Location cell | third `td` in the following sibling row |
-| "Archived adverts" tab link | `a[href*="archive=1"]` |
-| Back to Manage Adverts link | `a[href*="manage-vacancies"]` |
-
-### Advert detail page
-
-| Element | Selector |
-|---|---|
-| Job title | `div#original_title` |
-| Location | `th:has-text('Location:') + td` |
-| Job description (iframe) | `iframe#description_org` → `body` |
-| Applicant count cells | `table.board_status td[style*="text-align: center"]` |
-| "Responses" tab link | `a[href*="adcresponses"]` |
-
-### Responses page (filtered and unfiltered)
-
-| Element | Selector |
-|---|---|
-| Keywords textarea | `textarea.keywords` |
-| Distance field | `input[placeholder="30"]` |
-| Location Select2 trigger | `.select2-container.unediable-input a.select2-choice` |
-| Select2 search input | `#s2id_autogen2_search` |
-| Select2 dropdown results | `#select2-drop .select2-result-selectable` |
-| Select2 drop mask | `#select2-drop-mask` |
-| Search button | `section#main-criteria button.btn.btn-success` |
-| Filtered result count | `h4#search-activity` |
-| Candidate cards | `div.result.searchable` |
-| Candidate ID attribute | `external-candidate-id` |
-| Candidate name | `h4.mt-4 span.font-md` |
-| Flag icons | `div.ranking-flags i.icon-flag-circled` |
-| Purple flag icon | `i.candidate-flag-rank-21` |
-| Eye / profile button | `button.button-candidate-action-profile` |
-| Current page indicator | `#result-footer li.page-num.selected` |
-| Next page button | `#result-footer li.page-num.selected + li.page-num` |
-| Gritter toast wrapper | `#gritter-notice-wrapper` |
-
-### Candidate profile modal
-
-| Element | Selector |
-|---|---|
-| Modal container | `div.profile-box` |
-| Close button | `a.profile-close` |
-| CV header (HTML format) | `h4.adcresponses-header:has-text("CV")` |
-| CV content (HTML format) | `h4.adcresponses-header:has-text("CV") + div` |
-| PDF iframe | `div.profile-box iframe.pdfjs_viewer` |
-| PDF text layer | `div.textLayer` (use `.first()` — one per PDF page) |
-| PDF text divs | `div.textLayer div` |
-
-### Global
-
-| Element | Selector |
-|---|---|
-| Logout link | `li#logout a` |
-
----
-
-## 6. EXCEL FILES
+## 4. EXCEL FILES
 
 ### `data/Processing-Report.xlsx`
 
@@ -284,7 +166,7 @@ Current task names in the sheet: `identify keywords`, `resume review`.
 
 ---
 
-## 7. ENVIRONMENT VARIABLES
+## 5. ENVIRONMENT VARIABLES
 
 Copy `.env.template` to `.env` and fill in real values. Never commit `.env`.
 
@@ -295,6 +177,8 @@ Copy `.env.template` to `.env` and fill in real values. Never commit `.env`.
 | `LOOKBACK_DAYS` | `30` | How many days back to look for adverts (production) |
 | `EMAIL_USER` | — | Gmail address used to send notifications |
 | `EMAIL_PASS` | — | Gmail App Password for the sending account |
+| `VERITONE_USERNAME` | — | Veritone Hire login username (optional — falls back to manual login if not set) |
+| `VERITONE_PASSWORD` | — | Veritone Hire login password (optional — falls back to manual login if not set) |
 
 **Email recipients** are hardcoded in `email-service.ts`: `sustdev3@gmail.com` and `bruce@8020green.com`. They are not read from `.env`.
 
@@ -302,7 +186,7 @@ Copy `.env.template` to `.env` and fill in real values. Never commit `.env`.
 
 ---
 
-## 8. TESTING VS PRODUCTION
+## 6. TESTING VS PRODUCTION
 
 ### The distinction
 
@@ -324,7 +208,7 @@ There are **no** remaining `// TESTING ONLY` blocks in the codebase.
 
 ---
 
-## 9. ERROR HANDLING
+## 7. ERROR HANDLING
 
 ### Fatal errors — immediate stop
 
@@ -358,7 +242,7 @@ survives all retries is caught by `isFatalError` and stops the run.
 
 ---
 
-## 10. PERSISTENT RUN STATE
+## 8. PERSISTENT RUN STATE
 
 The bot persists state in `temp/resume-review-{advertId}.json` to make re-runs efficient
 after an interrupted or partial run.
@@ -399,58 +283,3 @@ and `passing-{advertId}.json` files in `temp/` whose advert ID is not in the cur
 deleted. Logs: `[AdvertReader] Deleted stale state file for advert {advertId} — not in current run`
 
 ---
-
-## 11. CURRENT DEVELOPMENT STATUS
-
-### Complete
-
-- Browser launch with human-in-the-loop login (10-minute window)
-- Navigation to Manage Adverts with URL + selector verification
-- Advert list extraction from `tr.va-top.advert.last` rows
-- Date parsing with Luxon (`d MMM yy HH:mm` and `d MMM yyyy HH:mm`)
-- Lookback window filtering via `LOOKBACK_DAYS`
-- Per-advert: click into detail page, extract title / location / description / applicant count
-- LLM keyword selection via Anthropic SDK with JSON parse and up-to-4 keyword cap
-- Rate-limit (429) and overloaded (529) retry with exponential backoff
-- Responses page: keyword entry, distance set to 20 km, Select2 location entry, search
-- Filtered candidate count read from `h4#search-activity`
-- Full pipeline: filter → collect → flag → resume review wired end-to-end
-- Write row to `Processing-Report.xlsx` — all columns including END_TIME, ELAPSED,
-  AFTER_RESUME, ERROR
-- Skipped adverts (zero filtered candidates) marked in END_TIME and ELAPSED columns
-- Fatal error handling: immediate stop + Excel write + email notification
-- Repeated error handling: stop after 2 of same type + email notification
-- Post-run summary email (`sendRunSummaryEmail`) — one email after all adverts, listing ✓/✗/⚠ per advert
-- Immediate error email (`sendErrorReportEmail`) — sent on fatal or repeated errors
-- Winston logger configured (rolling 5 MB file, 7-day retention)
-- `Variables-used-by-LLMs.xlsx` loader for LLM model selection and common keywords
-- `config/rejection-filters.md` reference document
-- Passing candidate collection with pagination (`candidate-collector.ts`)
-- Non-passing candidate flagging with inline purple flag (`candidate-flagger.ts`)
-- LLM resume review (`resume-reviewer.ts`) — HTML and PDF CV extraction, pass/fail flagging with purple flag (`rank-21`)
-- Resume review prompt (`src/prompts/review-resume.ts`) — strict mode triggers when `totalFiltered > 60`
-- `rejection_category` field in LLM resume response — `general` / `labouring` / `heavy_labouring` / `employment_date`; missing/invalid value defaults to `"general"` with a warning
-- Rejection category tallies written to Excel cols 15–18 per advert
-- Filter wait uses `waitFor visible` + `waitForFunction` polling instead of a static 10 s wait
-- Full location string (e.g. "Virginia, Brisbane, Australia") passed to Select2 — no truncation at comma
-- Clean separation of concerns — page-object files own all logic/types; automation files own only Playwright steps
-- Excel write operations fully encapsulated in `excel-service.ts` (`markAdvertSkipped`, `finaliseAdvertRow`, `writeAdvertError`)
-- Persistent run state via `temp/resume-review-{advertId}.json` — keyword reuse, previously-passed skip, result merging, stale file cleanup (see §10)
-- Nightly scheduler via `node-cron` — fires at `0 19 * * *` Sydney time; mid-run window check (`isWithinRunWindow`) stops the bot if 7:00 AM is reached; hard reset `setTimeout` in `main.ts` force-exits the process after 12 hours as a last resort
-- `activeSession` hoisted to module scope in `main.ts` so the hard reset timeout can call `cleanupSession` before forcing exit
-- Email notifications sent to `sustdev3@gmail.com`, `bruce@8020green.com`, and a testing address on every run summary and error report
-- `listPage` tracked per advert during `readAdvertList` — bot navigates to the correct Manage Adverts page before clicking each advert link
-- Gritter toast wait added before every pagination click in `candidate-collector.ts`, `candidate-flagger.ts`, and `resume-reviewer.ts`
-- Pagination `waitForSelector` timeouts bumped to 20–25 s across collector, flagger, and reviewer to handle slow renders on large adverts
-- Email advert list filtered to the 30-day lookback window — adverts outside the window are no longer included in the run summary email
-- `defaulted` flag saved per candidate in `temp/resume-review-{advertId}.json` — tracks candidates auto-passed due to LLM parse failure, persists across re-runs
-- `defaultedToPassCount` wired through `ReviewSummary` → `AdvertRunResult` → run summary email
-
-### Next to build
-
-- Nothing currently scheduled
-
-### Known TODOs
-
-- `activity-logger.ts` (Winston instance) is created but never imported — all logging
-  currently uses `console.log` / `console.warn` directly

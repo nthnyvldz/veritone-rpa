@@ -9,6 +9,44 @@ export interface BrowserSession {
   page: Page;
 }
 
+async function waitForManualLogin(page: Page): Promise<void> {
+  console.log('[Browser] No credentials found in .env — waiting for manual login.');
+  console.log('[Browser] ─────────────────────────────────────────');
+  console.log('[Browser]  ACTION REQUIRED: Please log in to ');
+  console.log('[Browser]  Veritone Hire.');
+  console.log('[Browser]  The automation will start as soon ');
+  console.log('[Browser]  as you log in.');
+  console.log('[Browser] ─────────────────────────────────────────');
+
+  await new Promise<void>((resolve) => {
+    const interval = setInterval(() => {
+      if (POST_LOGIN_URL_PATTERN.test(page.url())) {
+        clearInterval(interval);
+        resolve();
+      }
+    }, 3000);
+  });
+}
+
+async function performAutoLogin(page: Page): Promise<void> {
+  console.log('[Browser] Credentials found — logging in automatically...');
+
+  await page.fill('input[name="username"]', process.env.VERITONE_USERNAME!);
+  await page.fill('input[name="password"]', process.env.VERITONE_PASSWORD!);
+  await page.click('a#submit_button');
+
+  const redirected = await page
+    .waitForURL(url => POST_LOGIN_URL_PATTERN.test(url.href), { timeout: 15000 })
+    .then(() => true)
+    .catch(() => false);
+
+  if (!redirected) {
+    throw new Error(
+      '[Browser] Automatic login failed — check VERITONE_USERNAME and VERITONE_PASSWORD in .env',
+    );
+  }
+}
+
 export async function launchAndWaitForLogin(): Promise<BrowserSession> {
   console.log('[Browser] Launching Chromium browser...');
 
@@ -31,21 +69,14 @@ export async function launchAndWaitForLogin(): Promise<BrowserSession> {
 
   await page.goto(VERITONE_LOGIN_URL, { waitUntil: 'domcontentloaded' });
 
-  console.log('[Browser] ─────────────────────────────────────────');
-  console.log('[Browser]  ACTION REQUIRED: Please log in to ');
-  console.log('[Browser]  Veritone Hire.');
-  console.log('[Browser]  The automation will start as soon ');
-  console.log('[Browser]  as you log in.');
-  console.log('[Browser] ─────────────────────────────────────────');
+  const username = process.env.VERITONE_USERNAME;
+  const password = process.env.VERITONE_PASSWORD;
 
-  await new Promise<void>((resolve) => {
-    const interval = setInterval(() => {
-      if (POST_LOGIN_URL_PATTERN.test(page.url())) {
-        clearInterval(interval);
-        resolve();
-      }
-    }, 3000);
-  });
+  if (username && password) {
+    await performAutoLogin(page);
+  } else {
+    await waitForManualLogin(page);
+  }
 
   console.log('[Browser] Login confirmed. Session is active.');
 
