@@ -136,8 +136,13 @@ export async function reviewResumes(
         console.log(
           `[ResumeReviewer] WARNING: CV text too short or empty for ${candidate.name} — skipping`,
         );
-        await page.locator('a.profile-close').click();
-        await page.waitForTimeout(1000);
+        try {
+          await page.locator('a.profile-close').click();
+        } catch {}
+        await page.waitForFunction(
+          () => (document.querySelector('#gritter-notice-wrapper')?.childElementCount ?? 0) === 0,
+          { timeout: 10000 },
+        ).catch(() => {});
         continue;
       }
 
@@ -162,7 +167,13 @@ export async function reviewResumes(
         flaggedCount++;
       }
 
-      await page.locator('a.profile-close').click();
+      try {
+        await page.locator('a.profile-close').click();
+      } catch {}
+      await page.waitForFunction(
+        () => (document.querySelector('#gritter-notice-wrapper')?.childElementCount ?? 0) === 0,
+        { timeout: 10000 },
+      ).catch(() => {});
       await page.waitForTimeout(1000);
       await randomDelay();
     }
