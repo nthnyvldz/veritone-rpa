@@ -1,28 +1,35 @@
-import { Page } from 'playwright';
-import { PassingCandidate, FLAG_COLOUR_MAP, CardData, FlagResult, classifyCards } from './candidate-page-object';
-import { randomDelay, heavyLoadDelay } from '../shared/utils';
+import { Page } from "playwright";
+import {
+  PassingCandidate,
+  FLAG_COLOUR_MAP,
+  CardData,
+  FlagResult,
+  classifyCards,
+} from "./candidate-page-object";
+import { randomDelay, heavyLoadDelay } from "../shared/utils";
 
 async function classifyPageCandidates(
   page: Page,
   passingIds: Set<string>,
 ): Promise<ReturnType<typeof classifyCards>> {
   const cards: CardData[] = await page.evaluate((colourMap) => {
-    const elements = document.querySelectorAll('div.result.searchable');
+    const elements = document.querySelectorAll("div.result.searchable");
     return Array.from(elements).map((card) => {
-      const id = card.getAttribute('external-candidate-id') ?? '';
-      const nameEl = card.querySelector('h4.mt-4 span.font-md');
-      const name = nameEl?.textContent?.trim() ?? '';
+      const id = card.getAttribute("external-candidate-id") ?? "";
+      const nameEl = card.querySelector("h4.mt-4 span.font-md");
+      const name = nameEl?.textContent?.trim() ?? "";
 
       const flagIcons = Array.from(
-        card.querySelectorAll('div.ranking-flags i.icon-flag-circled'),
+        card.querySelectorAll("div.ranking-flags i.icon-flag-circled"),
       );
 
       let nonGreyCount = 0;
       let activeColour: string | null = null;
 
       for (const icon of flagIcons) {
-        const color = (icon as HTMLElement).style.color?.trim().toLowerCase() ?? '';
-        if (color && color !== 'grey' && color !== 'gray') {
+        const color =
+          (icon as HTMLElement).style.color?.trim().toLowerCase() ?? "";
+        if (color && color !== "grey" && color !== "gray") {
           nonGreyCount++;
           if (activeColour === null) {
             activeColour = colourMap[color] ?? color;
@@ -46,9 +53,9 @@ export async function flagFailingCandidates(
   await page.goto(
     `https://www.adcourier.com/view-vacancy.cgi?advert_id=${advertId}`,
   );
-  await page.waitForLoadState('domcontentloaded');
+  await page.waitForLoadState("domcontentloaded");
   await page.locator('a[href*="adcresponses"]').first().click();
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2000);
   console.log(
     `[CandidateFlagger] Navigated to unfiltered responses for advert ${advertId}`,
@@ -62,7 +69,10 @@ export async function flagFailingCandidates(
   let pageNumber = 1;
 
   while (true) {
-    const { noFlag, alreadyFlagged, skipped } = await classifyPageCandidates(page, passingIds);
+    const { noFlag, alreadyFlagged, skipped } = await classifyPageCandidates(
+      page,
+      passingIds,
+    );
     totalSkipped += skipped;
     alreadyFlaggedCount += alreadyFlagged.length;
 
@@ -79,19 +89,25 @@ export async function flagFailingCandidates(
 
     await (totalResponses >= 800 ? heavyLoadDelay() : randomDelay());
 
-    const nextPageLi = page.locator('div.pager ul li.page-num.selected + li.page-num').first();
+    const nextPageLi = page
+      .locator("div.pager ul li.page-num.selected + li.page-num")
+      .first();
     const nextExists = (await nextPageLi.count()) > 0;
     if (!nextExists) break;
 
-    await page.waitForFunction(
-      () => (document.querySelector('#gritter-notice-wrapper')?.childElementCount ?? 0) === 0,
-      { timeout: 10000 },
-    ).catch(() => {});
+    await page
+      .waitForFunction(
+        () =>
+          (document.querySelector("#gritter-notice-wrapper")
+            ?.childElementCount ?? 0) === 0,
+        { timeout: 30000 },
+      )
+      .catch(() => {});
 
     await nextPageLi.click();
     await page.waitForSelector(
       `div.pager ul li.page-num.selected[title="${pageNumber + 1}"]`,
-      { timeout: 20000 },
+      { timeout: 60000 },
     );
     await page.waitForTimeout(1000);
     pageNumber++;
@@ -99,7 +115,7 @@ export async function flagFailingCandidates(
 
   console.log(
     `[CandidateFlagger] Done — ${flaggedCount} flagged purple, ` +
-    `${totalSkipped} passed filter (skipped), ${alreadyFlaggedCount} already flagged (skipped)`,
+      `${totalSkipped} passed filter (skipped), ${alreadyFlaggedCount} already flagged (skipped)`,
   );
 
   return {

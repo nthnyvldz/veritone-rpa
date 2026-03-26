@@ -1,5 +1,7 @@
 import { Page } from "playwright";
 import { DateTime } from "luxon";
+import path from "path";
+import fs from "fs/promises";
 import { randomDelay, heavyLoadDelay } from "../shared/utils";
 import {
   appendToExcel,
@@ -89,14 +91,14 @@ async function readAdvertList(page: Page): Promise<AdvertSummary[]> {
 
     const nextPageNumber = pageNumber + 1;
     const nextLink = page
-      .locator('.paginator a')
+      .locator(".paginator a")
       .filter({ hasText: new RegExp(`^${nextPageNumber}$`) });
 
-    if (await nextLink.count() === 0) break;
+    if ((await nextLink.count()) === 0) break;
 
     await randomDelay();
     await nextLink.first().click();
-    await page.waitForLoadState('domcontentloaded');
+    await page.waitForLoadState("domcontentloaded");
     pageNumber++;
   }
 
@@ -147,8 +149,8 @@ async function extractAdvertDetail(
 }
 
 function isWithinRunWindow(): boolean {
-  if ((process.env.RUN_MODE ?? 'testing') !== 'production') return true;
-  const now = DateTime.now().setZone('Australia/Sydney');
+  if ((process.env.RUN_MODE ?? "testing") !== "production") return true;
+  const now = DateTime.now().setZone("Australia/Sydney");
   const h = now.hour;
   return h >= 19 || h < 7;
 }
@@ -156,15 +158,15 @@ function isWithinRunWindow(): boolean {
 export async function readAndProcessAdverts(
   page: Page,
   llmSelections: Record<string, string>,
-  keywordMapping: import('../shared/llm-service').KeywordMappingEntry[],
+  keywordMapping: import("../shared/llm-service").KeywordMappingEntry[],
 ): Promise<void> {
   console.log(
     "[AdvertReader] ─── Starting advert reader ───────────────────────────",
   );
 
   const allAdverts = await readAdvertList(page);
-  await page.locator('a#prim_manage').click();
-  await page.waitForLoadState('domcontentloaded');
+  await page.locator("a#prim_manage").click();
+  await page.waitForLoadState("domcontentloaded");
   const adverts = filterAndSort(allAdverts);
 
   if (adverts.length === 0) {
@@ -174,43 +176,41 @@ export async function readAndProcessAdverts(
     return;
   }
 
-  // TESTING ONLY - remove when done
-  // const allAdvertsMap = new Map(allAdverts.map((a) => [a.advertId, a]));
-  // const lookbackDays = parseInt(
-  //   process.env.LOOKBACK_DAYS ?? String(DEFAULT_LOOKBACK_DAYS),
-  //   10,
-  // );
-  // const cutoff = DateTime.now().minus({ days: lookbackDays }).startOf("day");
-  // const tempDir = path.resolve(process.cwd(), "temp");
-  // const tempFiles = await fs.readdir(tempDir).catch(() => [] as string[]);
-  //
-  // for (const file of tempFiles) {
-  //   const resumeMatch = file.match(/^resume-review-(\d+)\.json$/);
-  //   const passingMatch = file.match(/^passing-(\d+)\.json$/);
-  //   const match = resumeMatch ?? passingMatch;
-  //   if (!match) continue;
-  //
-  //   const advertId = match[1];
-  //   const advertEntry = allAdvertsMap.get(advertId);
-  //
-  //   if (advertEntry) {
-  //     if (advertEntry.datePosted < cutoff) {
-  //       await fs.unlink(path.join(tempDir, file));
-  //       console.log(
-  //         `[AdvertReader] Deleted stale state file: ${file} — outside lookback window`,
-  //       );
-  //     }
-  //   } else {
-  //     await fs.unlink(path.join(tempDir, file));
-  //     console.log(
-  //       `[AdvertReader] Deleted stale state file: ${file} — no longer visible in advert list`,
-  //     );
-  //   }
-  // }
-  // TESTING ONLY - remove when done
+  const allAdvertsMap = new Map(allAdverts.map((a) => [a.advertId, a]));
+  const lookbackDays = parseInt(
+    process.env.LOOKBACK_DAYS ?? String(DEFAULT_LOOKBACK_DAYS),
+    10,
+  );
+  const cutoff = DateTime.now().minus({ days: lookbackDays }).startOf("day");
+  const tempDir = path.resolve(process.cwd(), "temp");
+  const tempFiles = await fs.readdir(tempDir).catch(() => [] as string[]);
+
+  for (const file of tempFiles) {
+    const resumeMatch = file.match(/^resume-review-(\d+)\.json$/);
+    const passingMatch = file.match(/^passing-(\d+)\.json$/);
+    const match = resumeMatch ?? passingMatch;
+    if (!match) continue;
+
+    const advertId = match[1];
+    const advertEntry = allAdvertsMap.get(advertId);
+
+    if (advertEntry) {
+      if (advertEntry.datePosted < cutoff) {
+        await fs.unlink(path.join(tempDir, file));
+        console.log(
+          `[AdvertReader] Deleted stale state file: ${file} — outside lookback window`,
+        );
+      }
+    } else {
+      await fs.unlink(path.join(tempDir, file));
+      console.log(
+        `[AdvertReader] Deleted stale state file: ${file} — no longer visible in advert list`,
+      );
+    }
+  }
 
   console.log(
-    `[AdvertReader] Will process ${adverts.length} advert(s) (oldest first).`,
+    `[AdvertReader] Will process ${adverts.length} advert(s) (newest first).`,
   );
 
   const errorTracker = new Map<string, number>();
@@ -222,7 +222,7 @@ export async function readAndProcessAdverts(
     const startTime = DateTime.now();
 
     if (!isWithinRunWindow()) {
-      console.log('[AdvertReader] Run window ended — stopping immediately.');
+      console.log("[AdvertReader] Run window ended — stopping immediately.");
       shouldStop = true;
       break;
     }
@@ -235,10 +235,10 @@ export async function readAndProcessAdverts(
       await randomDelay();
       if (advert.listPage > 1) {
         const pageLink = page
-          .locator('.paginator a')
+          .locator(".paginator a")
           .filter({ hasText: new RegExp(`^${advert.listPage}$`) });
         await pageLink.first().click();
-        await page.waitForLoadState('domcontentloaded');
+        await page.waitForLoadState("domcontentloaded");
       }
       await page
         .locator(`a.jobtitle.no_dragdrop[href*="advert_id=${advert.advertId}"]`)
@@ -258,8 +258,10 @@ export async function readAndProcessAdverts(
       );
 
       if (!isWithinRunWindow()) {
-        console.log('[AdvertReader] Run window ended — stopping immediately.');
-        try { await writeAdvertError('Run stopped — time window ended'); } catch {}
+        console.log("[AdvertReader] Run window ended — stopping immediately.");
+        try {
+          await writeAdvertError("Run stopped — time window ended");
+        } catch {}
         shouldStop = true;
         break;
       }
@@ -271,8 +273,10 @@ export async function readAndProcessAdverts(
       );
 
       if (!isWithinRunWindow()) {
-        console.log('[AdvertReader] Run window ended — stopping immediately.');
-        try { await writeAdvertError('Run stopped — time window ended'); } catch {}
+        console.log("[AdvertReader] Run window ended — stopping immediately.");
+        try {
+          await writeAdvertError("Run stopped — time window ended");
+        } catch {}
         shouldStop = true;
         break;
       }
@@ -293,14 +297,14 @@ export async function readAndProcessAdverts(
         await markAdvertSkipped();
         runResults.push({
           advertTitle: detail.jobTitle,
-          status: 'skipped',
+          status: "skipped",
           refNumber: advert.refNumber,
           datePostedIso: advert.datePosted.toISO() ?? undefined,
           location: detail.location,
           selectedKeywords: filterResult.selectedKeywords,
           totalApplications: detail.totalApplicants,
           filteredCount: filterResult.filteredCount,
-          skippedReason: 'No candidates after keyword and location filter',
+          skippedReason: "No candidates after keyword and location filter",
         });
       } else {
         const flagResult = await flagFailingCandidates(
@@ -311,8 +315,12 @@ export async function readAndProcessAdverts(
         );
 
         if (!isWithinRunWindow()) {
-          console.log('[AdvertReader] Run window ended — stopping immediately.');
-          try { await writeAdvertError('Run stopped — time window ended'); } catch {}
+          console.log(
+            "[AdvertReader] Run window ended — stopping immediately.",
+          );
+          try {
+            await writeAdvertError("Run stopped — time window ended");
+          } catch {}
           shouldStop = true;
           break;
         }
@@ -346,8 +354,12 @@ export async function readAndProcessAdverts(
         );
 
         if (!isWithinRunWindow()) {
-          console.log('[AdvertReader] Run window ended — stopping immediately.');
-          try { await writeAdvertError('Run stopped — time window ended'); } catch {}
+          console.log(
+            "[AdvertReader] Run window ended — stopping immediately.",
+          );
+          try {
+            await writeAdvertError("Run stopped — time window ended");
+          } catch {}
           shouldStop = true;
           break;
         }
@@ -378,7 +390,7 @@ export async function readAndProcessAdverts(
 
         runResults.push({
           advertTitle: detail.jobTitle,
-          status: 'success',
+          status: "success",
           refNumber: advert.refNumber,
           datePostedIso: advert.datePosted.toISO() ?? undefined,
           elapsedStr,
@@ -386,7 +398,8 @@ export async function readAndProcessAdverts(
           selectedKeywords: filterResult.selectedKeywords,
           totalApplications: detail.totalApplicants,
           filteredCount: filterResult.filteredCount,
-          unflaggedForReview: collectResult.passingCandidates.length - reviewResult.skippedCount,
+          unflaggedForReview:
+            collectResult.passingCandidates.length - reviewResult.skippedCount,
           generalFilterRejects: reviewResult.generalFilterRejects,
           labouringFilterRejects: reviewResult.labouringFilterRejects,
           heavyLabouringRejects: reviewResult.heavyLabouringRejects,
@@ -407,7 +420,7 @@ export async function readAndProcessAdverts(
         );
         runResults.push({
           advertTitle: advert.jobTitle,
-          status: 'error',
+          status: "error",
           datePostedIso: advert.datePosted.toISO() ?? undefined,
           errorMessage: errMsg,
         });
@@ -425,7 +438,7 @@ export async function readAndProcessAdverts(
       errorLog.push({ advertTitle: advert.jobTitle, message: errMsg });
       runResults.push({
         advertTitle: advert.jobTitle,
-        status: 'error',
+        status: "error",
         datePostedIso: advert.datePosted.toISO() ?? undefined,
         errorMessage: errMsg,
       });
@@ -466,14 +479,19 @@ export async function readAndProcessAdverts(
     "\n[AdvertReader] ─── All adverts processed ────────────────────────────",
   );
 
-  const emailLookbackDays = parseInt(process.env.LOOKBACK_DAYS ?? String(DEFAULT_LOOKBACK_DAYS), 10);
-  const emailCutoff = DateTime.now().minus({ days: emailLookbackDays }).startOf("day");
+  const emailLookbackDays = parseInt(
+    process.env.LOOKBACK_DAYS ?? String(DEFAULT_LOOKBACK_DAYS),
+    10,
+  );
+  const emailCutoff = DateTime.now()
+    .minus({ days: emailLookbackDays })
+    .startOf("day");
   const advertList: AdvertListEntry[] = allAdverts
     .filter((a) => a.datePosted >= emailCutoff)
     .map((a) => ({
       advertId: a.advertId,
       jobTitle: a.jobTitle,
-      datePostedIso: a.datePosted.toISO() ?? '',
+      datePostedIso: a.datePosted.toISO() ?? "",
       refNumber: a.refNumber,
       location: a.location,
       totalResponses: a.totalResponses,

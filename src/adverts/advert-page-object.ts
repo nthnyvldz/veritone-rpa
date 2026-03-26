@@ -1,5 +1,5 @@
-import { DateTime } from 'luxon';
-import { parseAdvertDate } from '../shared/utils';
+import { DateTime } from "luxon";
+import { parseAdvertDate } from "../shared/utils";
 
 export const DEFAULT_LOOKBACK_DAYS = 30;
 
@@ -48,16 +48,23 @@ export function classifyError(message: string): string {
   return "other";
 }
 
-export function parseAdvertRow(r: RawAdvertRow, listPage: number): AdvertSummary | null {
+export function parseAdvertRow(
+  r: RawAdvertRow,
+  listPage: number,
+): AdvertSummary | null {
   if (!r.advertId) {
-    console.warn(`[AdvertReader] Skipping row — could not extract advert ID from href.`);
+    console.warn(
+      `[AdvertReader] Skipping row — could not extract advert ID from href.`,
+    );
     return null;
   }
 
   const datePosted = parseAdvertDate(r.dateText);
 
   if (!datePosted.isValid) {
-    console.warn(`[AdvertReader] Could not parse date for advert ${r.advertId} — skipping.`);
+    console.warn(
+      `[AdvertReader] Could not parse date for advert ${r.advertId} — skipping.`,
+    );
     return null;
   }
 
@@ -79,7 +86,7 @@ export function filterAndSort(adverts: AdvertSummary[]): AdvertSummary[] {
 
   for (const a of withinWindow) {
     console.log(
-      `[AdvertReader] Found: ID=${a.advertId} — "${a.jobTitle}" | ${a.totalResponses} applications | posted ${a.datePosted.toFormat('dd MMM yyyy HH:mm')}`,
+      `[AdvertReader] Found: ID=${a.advertId} — "${a.jobTitle}" | ${a.totalResponses} applications | posted ${a.datePosted.toFormat("dd MMM yyyy HH:mm")}`,
     );
   }
 
@@ -90,7 +97,7 @@ export function filterAndSort(adverts: AdvertSummary[]): AdvertSummary[] {
     `[AdvertReader] Skipped ${skipped} advert(s) with fewer than 100 applications.`,
   );
 
-  filtered.sort((a, b) => a.datePosted.toMillis() - b.datePosted.toMillis());
+  filtered.sort((a, b) => b.datePosted.toMillis() - a.datePosted.toMillis());
 
   for (const a of filtered) {
     console.log(
